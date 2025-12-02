@@ -2,115 +2,70 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Distributed URL Router (CSV param)</title>
+  <title>Distributed URL Router</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    :root {
+      color-scheme: dark;
+    }
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       margin: 0;
       padding: 0;
-      background: #111;
+      background: radial-gradient(circle at top, #1f2933, #020617 55%);
       color: #f5f5f5;
-      display: flex;
       min-height: 100vh;
+      display: flex;
       align-items: center;
       justify-content: center;
     }
 
     .container {
-      max-width: 480px;
+      max-width: 520px;
       width: 100%;
       padding: 1.5rem;
       box-sizing: border-box;
+      text-align: center;
     }
 
-    .card {
-      background: #1e1e1e;
-      padding: 1.5rem;
-      border-radius: 1rem;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-    }
-
-    h1 {
-      font-size: 1.4rem;
-      margin: 0 0 0.75rem;
-    }
-
-    p {
-      margin: 0 0 1rem;
-      font-size: 0.95rem;
-      color: #ccc;
-    }
-
-    .mode-select {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-bottom: 1.25rem;
-    }
-
-    .mode-option {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.95rem;
-    }
-
-    .mode-option input[type="radio"] {
-      accent-color: #8b5cf6;
-    }
-
-    .btn-primary {
+    .big-button {
       width: 100%;
-      border: none;
+      padding: 1.2rem 1.5rem;
       border-radius: 999px;
-      padding: 0.9rem 1.2rem;
-      font-size: 1rem;
-      font-weight: 600;
+      border: none;
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
       cursor: pointer;
       background: linear-gradient(135deg, #8b5cf6, #ec4899);
       color: #fff;
-      margin-bottom: 1rem;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.6);
+      transition:
+        transform 0.12s ease-out,
+        box-shadow 0.12s ease-out,
+        filter 0.12s ease-out,
+        opacity 0.12s ease-out;
     }
 
-    .btn-primary:disabled {
-      opacity: 0.6;
+    .big-button:disabled {
+      opacity: 0.5;
       cursor: not-allowed;
+      box-shadow: none;
+      filter: grayscale(0.3);
     }
 
-    .code-section {
-      margin-top: 0.5rem;
-      padding-top: 0.75rem;
-      border-top: 1px solid #333;
-      font-size: 0.9rem;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 0.35rem;
-    }
-
-    input[type="text"] {
-      width: 100%;
-      padding: 0.5rem 0.75rem;
-      border-radius: 0.5rem;
-      border: 1px solid #333;
-      background: #121212;
-      color: #f5f5f5;
-      font-size: 0.95rem;
-      box-sizing: border-box;
-    }
-
-    input[type="text"]:focus {
-      outline: none;
-      border-color: #8b5cf6;
-      box-shadow: 0 0 0 1px #8b5cf6;
+    .big-button:not(:disabled):active {
+      transform: translateY(2px) scale(0.99);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      filter: brightness(0.95);
     }
 
     .status {
-      font-size: 0.85rem;
-      color: #9ca3af;
-      min-height: 1.3em;
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
+      color: #cbd5f5;
+      min-height: 1.4em;
+      word-break: break-word;
     }
 
     .status.error {
@@ -118,48 +73,157 @@
     }
 
     .status code {
-      word-break: break-all;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    details {
+      margin-top: 1.5rem;
+      text-align: left;
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 1rem;
+      padding: 0.6rem 0.9rem 0.9rem;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+
+    summary {
+      cursor: pointer;
+      outline: none;
+      list-style: none;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      user-select: none;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .summary-chevron {
+      width: 0.75rem;
+      height: 0.75rem;
+      border-right: 2px solid #e5e7eb;
+      border-bottom: 2px solid #e5e7eb;
+      transform: rotate(45deg);
+      transition: transform 0.12s ease-out;
+      flex-shrink: 0;
+    }
+
+    details[open] .summary-chevron {
+      transform: rotate(225deg);
+    }
+
+    .panel-body {
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
+      color: #d1d5db;
+    }
+
+    .mode-select {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin: 0.6rem 0 0.8rem;
+    }
+
+    .mode-option {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .mode-option input[type="radio"] {
+      accent-color: #8b5cf6;
+    }
+
+    label {
+      font-size: 0.9rem;
+    }
+
+    .field {
+      margin-top: 0.75rem;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.45rem 0.7rem;
+      border-radius: 0.5rem;
+      border: 1px solid #374151;
+      background: #020617;
+      color: #f9fafb;
+      font-size: 0.9rem;
+      box-sizing: border-box;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.7);
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-top: 0.3rem;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="card">
-      <h1>Get your link</h1>
-      <p>
-        Tap the button to be sent to one of several URLs defined in a CSV file.
-        Enter a code like <code>purple</code> to go to a specific destination.
-      </p>
+    <button id="go-btn" class="big-button" disabled>
+      Let’s go
+    </button>
 
-      <div class="mode-select">
-        <div class="mode-option">
-          <input type="radio" id="mode-random" name="mode" value="random" checked />
-          <label for="mode-random"><strong>Random (balanced)</strong> — default</label>
-        </div>
-        <div class="mode-option">
-          <input type="radio" id="mode-code" name="mode" value="code" />
-          <label for="mode-code">Use a code (e.g. “purple”)</label>
-        </div>
-      </div>
-
-      <button id="go-btn" class="btn-primary" disabled>
-        Take me to the URL
-      </button>
-
-      <div class="code-section">
-        <label for="code-input">Code (optional, used only if “Use a code” is selected):</label>
-        <input
-          id="code-input"
-          type="text"
-          placeholder="e.g. purple"
-          autocomplete="off"
-        />
-      </div>
-
-      <div id="status" class="status">
-        Looking for <code>?csv=…</code> parameter…
-      </div>
+    <div id="status" class="status">
+      Looking for <code>?csv=…</code> parameter…
     </div>
+
+    <details>
+      <summary>
+        <span class="summary-chevron"></span>
+        Advanced options
+      </summary>
+      <div class="panel-body">
+        <p>
+          This page distributes people across a set of URLs defined in a CSV file,
+          whose address is passed via the <code>?csv=…</code> parameter.
+        </p>
+
+        <div class="mode-select">
+          <div class="mode-option">
+            <input type="radio" id="mode-random" name="mode" value="random" checked />
+            <label for="mode-random">
+              <strong>Random (balanced)</strong> — each device is stably assigned to one of the URLs.
+            </label>
+          </div>
+          <div class="mode-option">
+            <input type="radio" id="mode-code" name="mode" value="code" />
+            <label for="mode-code">
+              Use a code (e.g. <code>purple</code>) to go to a specific destination.
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="code-input">Code (only used if “Use a code” is selected):</label>
+          <input
+            id="code-input"
+            type="text"
+            placeholder="e.g. purple"
+            autocomplete="off"
+          />
+          <div class="hint">
+            The CSV should have <code>code</code> and <code>url</code> columns. Empty codes are allowed.
+          </div>
+        </div>
+      </div>
+    </details>
   </div>
 
   <script>
@@ -173,7 +237,6 @@
     const modeRandom = document.getElementById("mode-random");
     const modeCode = document.getElementById("mode-code");
 
-    // --- Utility: simple string hash (unsigned 32-bit integer) ---
     function hashString(str) {
       let hash = 0;
       for (let i = 0; i < str.length; i++) {
@@ -182,7 +245,6 @@
       return hash >>> 0;
     }
 
-    // --- Utility: stable per-device ID in localStorage ---
     function getUserId() {
       const key = "distributeurl_user_id";
       let id = localStorage.getItem(key);
@@ -197,7 +259,6 @@
       return id;
     }
 
-    // --- Very simple CSV parser (no support for quoted commas) ---
     function parseCsv(text) {
       const lines = text.split(/\r?\n/).filter((l) => l.trim() !== "");
       if (lines.length === 0) return [];
@@ -228,8 +289,7 @@
       if (!csvUrl) {
         statusEl.innerHTML =
           'Missing <code>?csv=…</code> parameter in the URL. ' +
-          "Please call this page like:<br>" +
-          '<code>?csv=https%3A%2F%2Fexample.com%2Flinks.csv</code>';
+          "Call this page like:<br><code>?csv=https%3A%2F%2F…%2Foutput%3Dcsv</code>";
         statusEl.classList.add("error");
         goBtn.disabled = true;
         return;
@@ -267,7 +327,7 @@
           throw new Error("No valid URLs found in CSV");
         }
 
-        statusEl.textContent = "Ready.";
+        statusEl.textContent = "Ready. Tap “Let’s go”.";
         statusEl.classList.remove("error");
         goBtn.disabled = false;
       } catch (err) {
@@ -295,7 +355,7 @@
         return;
       }
 
-      const mode = modeCode.checked ? "code" : "random";
+      const mode = modeCode && modeCode.checked ? "code" : "random";
 
       if (mode === "code") {
         const code = codeInput.value.trim().toLowerCase();
@@ -310,15 +370,14 @@
           statusEl.classList.add("error");
           return;
         }
-        statusEl.textContent = `Using code “${code}”.`;
+        statusEl.textContent = `Using code “${code}”…`;
         statusEl.classList.remove("error");
         redirectTo(url);
       } else {
-        // balanced-ish assignment: each device gets one URL
         const userId = getUserId();
         const idx = hashString(userId) % urls.length;
         const url = urls[idx];
-        statusEl.textContent = "Random (balanced) assignment in progress…";
+        statusEl.textContent = "Assigning you to a URL…";
         statusEl.classList.remove("error");
         redirectTo(url);
       }
@@ -326,13 +385,14 @@
 
     goBtn.addEventListener("click", handleGoClick);
 
-    codeInput.addEventListener("keydown", (ev) => {
-      if (ev.key === "Enter") {
-        handleGoClick();
-      }
-    });
+    if (codeInput) {
+      codeInput.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") {
+          handleGoClick();
+        }
+      });
+    }
 
-    // Kick things off
     loadCsvFromParam();
   </script>
 </body>
