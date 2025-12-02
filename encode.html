@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>URL Encoder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.4;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      margin-bottom: 20px;
+    }
+    .label {
+      font-weight: bold;
+      margin-bottom: 6px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>URL Encoder</h1>
+  <p>Paste your URL below; the encoded version will be generated automatically.</p>
+
+  <div class="label">Input URL:</div>
+  <input id="input" type="text" placeholder="Paste URL here…" />
+
+  <div class="label">Encoded URL (encodeURIComponent):</div>
+  <textarea id="output" rows="4" readonly></textarea>
+
+  <script>
+    const input = document.getElementById("input");
+    const output = document.getElementById("output");
+
+    input.addEventListener("input", () => {
+      output.value = encodeURIComponent(input.value.trim());
+    });
+  </script>
+</body>
+</html>
