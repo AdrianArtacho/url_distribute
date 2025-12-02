@@ -24,8 +24,10 @@ https://adrianartacho.github.io/url_distribute/?csv=https%3A%2F%2Fdocs.google.co
 
 You encode that and use it as csv parameter:
 
-https://<your-username>.github.io/<your-repo>/
+```url
+https://USERNAME.github.io/REPO/
   ?csv=https%3A%2F%2Fdocs.google.com%2Fspreadsheets%2Fd%2Fe%2F2PACX-1vQGKYTEfrcRRB3rnW9-XqgPOhLXDJiW2OzswAzslBcoGoxgBQhlU4j8pnzyJP0Ic8ZmiDsPRp7OH1tk%2Fpub%3Fgid%3D0%26single%3Dtrue%26output%3Dcsv
+```
 
 You can get the encoded version by running in a JS console:
 
