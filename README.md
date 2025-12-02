@@ -12,7 +12,7 @@ Simply go to the static 'index.html' by typing the repository pages URL:
 https://adrianartacho.github.io/url_distribute/
 ```
 
-Add the public URL pointing at the .csv table with the url addresses as a query parameter as follows:
+Add the [public URL pointing at the .csv table with the url addresses](https://docs.google.com/spreadsheets/d/1e6XpShTIiDQWFWPk5WJ0pEAEcygZh6ZYEFjzxiLhGYs/edit?gid=0#gid=0) as a query parameter as follows:
 
 ```url
 https://adrianartacho.github.io/url_distribute/?csv=https%3A%2F%2Fdocs.google.com%2Fspreadsheets%2Fd%2Fe%2F2PACX-1vQGKYTEfrcRRB3rnW9-XqgPOhLXDJiW2OzswAzslBcoGoxgBQhlU4j8pnzyJP0Ic8ZmiDsPRp7OH1tk%2Fpub%3Fgid%3D0%26single%3Dtrue%26output%3Dcsv
