@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Distributed URL Router (CSV param)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #111;
+      color: #f5f5f5;
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 480px;
+      width: 100%;
+      padding: 1.5rem;
+      box-sizing: border-box;
+    }
+
+    .card {
+      background: #1e1e1e;
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin: 0 0 0.75rem;
+    }
+
+    p {
+      margin: 0 0 1rem;
+      font-size: 0.95rem;
+      color: #ccc;
+    }
+
+    .mode-select {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .mode-option {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    .mode-option input[type="radio"] {
+      accent-color: #8b5cf6;
+    }
+
+    .btn-primary {
+      width: 100%;
+      border: none;
+      border-radius: 999px;
+      padding: 0.9rem 1.2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      color: #fff;
+      margin-bottom: 1rem;
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .code-section {
+      margin-top: 0.5rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid #333;
+      font-size: 0.9rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.5rem;
+      border: 1px solid #333;
+      background: #121212;
+      color: #f5f5f5;
+      font-size: 0.95rem;
+      box-sizing: border-box;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 1px #8b5cf6;
+    }
+
+    .status {
+      font-size: 0.85rem;
+      color: #9ca3af;
+      min-height: 1.3em;
+    }
+
+    .status.error {
+      color: #fca5a5;
+    }
+
+    .status code {
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Get your link</h1>
+      <p>
+        Tap the button to be sent to one of several URLs defined in a CSV file.
+        Enter a code like <code>purple</code> to go to a specific destination.
+      </p>
+
+      <div class="mode-select">
+        <div class="mode-option">
+          <input type="radio" id="mode-random" name="mode" value="random" checked />
+          <label for="mode-random"><strong>Random (balanced)</strong> — default</label>
+        </div>
+        <div class="mode-option">
+          <input type="radio" id="mode-code" name="mode" value="code" />
+          <label for="mode-code">Use a code (e.g. “purple”)</label>
+        </div>
+      </div>
+
+      <button id="go-btn" class="btn-primary" disabled>
+        Take me to the URL
+      </button>
+
+      <div class="code-section">
+        <label for="code-input">Code (optional, used only if “Use a code” is selected):</label>
+        <input
+          id="code-input"
+          type="text"
+          placeholder="e.g. purple"
+          autocomplete="off"
+        />
+      </div>
+
+      <div id="status" class="status">
+        Looking for <code>?csv=…</code> parameter…
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let links = [];
+    let codeMap = {};
+    let urls = [];
+
+    const statusEl = document.getElementById("status");
+    const goBtn = document.getElementById("go-btn");
+    const codeInput = document.getElementById("code-input");
+    const modeRandom = document.getElementById("mode-random");
+    const modeCode = document.getElementById("mode-code");
+
+    // --- Utility: simple string hash (unsigned 32-bit integer) ---
+    function hashString(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = (hash * 31 + str.charCodeAt(i)) | 0;
+      }
+      return hash >>> 0;
+    }
+
+    // --- Utility: stable per-device ID in localStorage ---
+    function getUserId() {
+      const key = "distributeurl_user_id";
+      let id = localStorage.getItem(key);
+      if (!id) {
+        if (window.crypto && crypto.randomUUID) {
+          id = crypto.randomUUID();
+        } else {
+          id = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+        }
+        localStorage.setItem(key, id);
+      }
+      return id;
+    }
+
+    // --- Very simple CSV parser (no support for quoted commas) ---
+    function parseCsv(text) {
+      const lines = text.split(/\r?\n/).filter((l) => l.trim() !== "");
+      if (lines.length === 0) return [];
+
+      const header = lines[0].split(",");
+      const idxCode = header.findIndex((h) => h.trim().toLowerCase() === "code");
+      const idxUrl = header.findIndex((h) => h.trim().toLowerCase() === "url");
+
+      if (idxUrl === -1) {
+        throw new Error('CSV must contain a "url" column');
+      }
+
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(",");
+        const code = idxCode >= 0 ? (cols[idxCode] || "").trim() : "";
+        const url = (cols[idxUrl] || "").trim();
+        if (!url) continue;
+        rows.push({ code, url });
+      }
+      return rows;
+    }
+
+    async function loadCsvFromParam() {
+      const params = new URLSearchParams(window.location.search);
+      const csvUrl = params.get("csv");
+
+      if (!csvUrl) {
+        statusEl.innerHTML =
+          'Missing <code>?csv=…</code> parameter in the URL. ' +
+          "Please call this page like:<br>" +
+          '<code>?csv=https%3A%2F%2Fexample.com%2Flinks.csv</code>';
+        statusEl.classList.add("error");
+        goBtn.disabled = true;
+        return;
+      }
+
+      statusEl.textContent = "Loading CSV from parameter…";
+
+      try {
+        const res = await fetch(csvUrl, { cache: "no-cache" });
+        if (!res.ok) {
+          throw new Error("HTTP " + res.status);
+        }
+        const text = await res.text();
+        const data = parseCsv(text);
+
+        if (!Array.isArray(data) || data.length === 0) {
+          throw new Error("Empty or invalid CSV");
+        }
+
+        links = data;
+        codeMap = {};
+        urls = [];
+
+        for (const entry of links) {
+          const code = (entry.code || "").trim().toLowerCase();
+          const url = (entry.url || "").trim();
+          if (!url) continue;
+          urls.push(url);
+          if (code) {
+            codeMap[code] = url;
+          }
+        }
+
+        if (urls.length === 0) {
+          throw new Error("No valid URLs found in CSV");
+        }
+
+        statusEl.textContent = "Ready.";
+        statusEl.classList.remove("error");
+        goBtn.disabled = false;
+      } catch (err) {
+        console.error(err);
+        statusEl.innerHTML =
+          "Could not load or parse CSV from:<br><code>" +
+          csvUrl +
+          "</code><br>" +
+          "Error: " +
+          err.message;
+        statusEl.classList.add("error");
+        goBtn.disabled = true;
+      }
+    }
+
+    function redirectTo(url) {
+      statusEl.textContent = "Redirecting…";
+      window.location.href = url;
+    }
+
+    function handleGoClick() {
+      if (urls.length === 0) {
+        statusEl.textContent = "No URLs available.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      const mode = modeCode.checked ? "code" : "random";
+
+      if (mode === "code") {
+        const code = codeInput.value.trim().toLowerCase();
+        if (!code) {
+          statusEl.textContent = "Please enter a code.";
+          statusEl.classList.add("error");
+          return;
+        }
+        const url = codeMap[code];
+        if (!url) {
+          statusEl.textContent = `No URL found for code “${code}”.`;
+          statusEl.classList.add("error");
+          return;
+        }
+        statusEl.textContent = `Using code “${code}”.`;
+        statusEl.classList.remove("error");
+        redirectTo(url);
+      } else {
+        // balanced-ish assignment: each device gets one URL
+        const userId = getUserId();
+        const idx = hashString(userId) % urls.length;
+        const url = urls[idx];
+        statusEl.textContent = "Random (balanced) assignment in progress…";
+        statusEl.classList.remove("error");
+        redirectTo(url);
+      }
+    }
+
+    goBtn.addEventListener("click", handleGoClick);
+
+    codeInput.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") {
+        handleGoClick();
+      }
+    });
+
+    // Kick things off
+    loadCsvFromParam();
+  </script>
+</body>
+</html>
