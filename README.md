@@ -1,36 +1,49 @@
-# url_distribute
-Distribute visitors across a set of urls
+# URL DISTRIBUTE
 
-2. How to call it with your Google Sheet
+Distributes visitors across a set of urls.
 
-Your CSV link (from the Sheet) is:
+---
 
-https://docs.google.com/spreadsheets/d/e/2PACX-1vQGKYTEfrcRRB3rnW9-XqgPOhLXDJiW2OzswAzslBcoGoxgBQhlU4j8pnzyJP0Ic8ZmiDsPRp7OH1tk/pub?gid=0&single=true&output=csv
+## USAGE
 
+Simply go to the static 'index.html' by typing the repository pages URL:
+
+```url
+https://adrianartacho.github.io/url_distribute/
+```
+
+Add the public URL pointing at the .csv table with the url addresses as a query parameter as follows:
+
+```url
+https://adrianartacho.github.io/url_distribute/?csv=https%3A%2F%2Fdocs.google.com%2Fspreadsheets%2Fd%2Fe%2F2PACX-1vQGKYTEfrcRRB3rnW9-XqgPOhLXDJiW2OzswAzslBcoGoxgBQhlU4j8pnzyJP0Ic8ZmiDsPRp7OH1tk%2Fpub%3Fgid%3D0%26single%3Dtrue%26output%3Dcsv
+```
+
+---
+
+## How to encode the Spreadsheet url
 
 You encode that and use it as csv parameter:
 
 https://<your-username>.github.io/<your-repo>/
   ?csv=https%3A%2F%2Fdocs.google.com%2Fspreadsheets%2Fd%2Fe%2F2PACX-1vQGKYTEfrcRRB3rnW9-XqgPOhLXDJiW2OzswAzslBcoGoxgBQhlU4j8pnzyJP0Ic8ZmiDsPRp7OH1tk%2Fpub%3Fgid%3D0%26single%3Dtrue%26output%3Dcsv
 
-
 You can get the encoded version by running in a JS console:
 
+```js
 encodeURIComponent("https://docs.google.com/spreadsheets/…output=csv");
+```
 
+Alternatively, you may just use the stativ URI encoder page:
 
-
--->
-
-'https%3A%2F%2Fdocs.google.com%2Fspreadsheets%2F...output%3Dcsv'
-
-
+```url
+https://adrianartacho.github.io/url_distribute/encode.html
+```
 
 Now the Sheet URL lives only in the link you share, not inside the repo.
 
 ---
 
-3. Notes / caveats
+## Notes / caveats
 
 This simple CSV parser assumes:
 
