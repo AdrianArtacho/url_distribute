@@ -45,6 +45,29 @@ Now the Sheet URL lives only in the link you share, not inside the repo.
 
 ---
 
+## Timer
+
+There is an optional query parameter (`t`) that:
+
+* `?t=5` → auto-clicks after 5 seconds if the user does nothing
+
+* `?t=0` → auto-clicks immediately (invisible forwarding, as soon as the CSV is loaded)
+
+If t is omitted → behaves exactly like now (no auto-click)
+Example:
+
+```url
+https://USERNAME.github.io/REPO/?csv=ENCODED_CSV_URL&t=5
+```
+
+or for instant invisible forwarding:
+
+```url
+https://USERNAME.github.io/REPO/?csv=ENCODED_CSV_URL&t=0
+```
+
+---
+
 ## Notes / caveats
 
 This simple CSV parser assumes:

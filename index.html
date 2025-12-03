@@ -226,174 +226,224 @@
     </details>
   </div>
 
-  <script>
-    let links = [];
-    let codeMap = {};
-    let urls = [];
+<script>
+  let links = [];
+  let codeMap = {};
+  let urls = [];
 
-    const statusEl = document.getElementById("status");
-    const goBtn = document.getElementById("go-btn");
-    const codeInput = document.getElementById("code-input");
-    const modeRandom = document.getElementById("mode-random");
-    const modeCode = document.getElementById("mode-code");
+  const statusEl = document.getElementById("status");
+  const goBtn = document.getElementById("go-btn");
+  const codeInput = document.getElementById("code-input");
+  const modeRandom = document.getElementById("mode-random");
+  const modeCode = document.getElementById("mode-code");
 
-    function hashString(str) {
-      let hash = 0;
-      for (let i = 0; i < str.length; i++) {
-        hash = (hash * 31 + str.charCodeAt(i)) | 0;
-      }
-      return hash >>> 0;
+  // NEW: auto-redirect settings
+  let autoSeconds = null;     // number of seconds (from ?t=…)
+  let autoTimeoutId = null;   // ID of the scheduled timeout
+  let hasRedirected = false;  // prevent double-redirects
+
+  function hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash * 31 + str.charCodeAt(i)) | 0;
     }
+    return hash >>> 0;
+  }
 
-    function getUserId() {
-      const key = "distributeurl_user_id";
-      let id = localStorage.getItem(key);
-      if (!id) {
-        if (window.crypto && crypto.randomUUID) {
-          id = crypto.randomUUID();
-        } else {
-          id = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
-        }
-        localStorage.setItem(key, id);
-      }
-      return id;
-    }
-
-    function parseCsv(text) {
-      const lines = text.split(/\r?\n/).filter((l) => l.trim() !== "");
-      if (lines.length === 0) return [];
-
-      const header = lines[0].split(",");
-      const idxCode = header.findIndex((h) => h.trim().toLowerCase() === "code");
-      const idxUrl = header.findIndex((h) => h.trim().toLowerCase() === "url");
-
-      if (idxUrl === -1) {
-        throw new Error('CSV must contain a "url" column');
-      }
-
-      const rows = [];
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(",");
-        const code = idxCode >= 0 ? (cols[idxCode] || "").trim() : "";
-        const url = (cols[idxUrl] || "").trim();
-        if (!url) continue;
-        rows.push({ code, url });
-      }
-      return rows;
-    }
-
-    async function loadCsvFromParam() {
-      const params = new URLSearchParams(window.location.search);
-      const csvUrl = params.get("csv");
-
-      if (!csvUrl) {
-        statusEl.innerHTML =
-          'Missing <code>?csv=…</code> parameter in the URL. ' +
-          "Call this page like:<br><code>?csv=https%3A%2F%2F…%2Foutput%3Dcsv</code>";
-        statusEl.classList.add("error");
-        goBtn.disabled = true;
-        return;
-      }
-
-      statusEl.textContent = "Loading CSV from parameter…";
-
-      try {
-        const res = await fetch(csvUrl, { cache: "no-cache" });
-        if (!res.ok) {
-          throw new Error("HTTP " + res.status);
-        }
-        const text = await res.text();
-        const data = parseCsv(text);
-
-        if (!Array.isArray(data) || data.length === 0) {
-          throw new Error("Empty or invalid CSV");
-        }
-
-        links = data;
-        codeMap = {};
-        urls = [];
-
-        for (const entry of links) {
-          const code = (entry.code || "").trim().toLowerCase();
-          const url = (entry.url || "").trim();
-          if (!url) continue;
-          urls.push(url);
-          if (code) {
-            codeMap[code] = url;
-          }
-        }
-
-        if (urls.length === 0) {
-          throw new Error("No valid URLs found in CSV");
-        }
-
-        statusEl.textContent = "Ready. Tap “Let’s go”.";
-        statusEl.classList.remove("error");
-        goBtn.disabled = false;
-      } catch (err) {
-        console.error(err);
-        statusEl.innerHTML =
-          "Could not load or parse CSV from:<br><code>" +
-          csvUrl +
-          "</code><br>" +
-          "Error: " +
-          err.message;
-        statusEl.classList.add("error");
-        goBtn.disabled = true;
-      }
-    }
-
-    function redirectTo(url) {
-      statusEl.textContent = "Redirecting…";
-      window.location.href = url;
-    }
-
-    function handleGoClick() {
-      if (urls.length === 0) {
-        statusEl.textContent = "No URLs available.";
-        statusEl.classList.add("error");
-        return;
-      }
-
-      const mode = modeCode && modeCode.checked ? "code" : "random";
-
-      if (mode === "code") {
-        const code = codeInput.value.trim().toLowerCase();
-        if (!code) {
-          statusEl.textContent = "Please enter a code.";
-          statusEl.classList.add("error");
-          return;
-        }
-        const url = codeMap[code];
-        if (!url) {
-          statusEl.textContent = `No URL found for code “${code}”.`;
-          statusEl.classList.add("error");
-          return;
-        }
-        statusEl.textContent = `Using code “${code}”…`;
-        statusEl.classList.remove("error");
-        redirectTo(url);
+  function getUserId() {
+    const key = "distributeurl_user_id";
+    let id = localStorage.getItem(key);
+    if (!id) {
+      if (window.crypto && crypto.randomUUID) {
+        id = crypto.randomUUID();
       } else {
-        const userId = getUserId();
-        const idx = hashString(userId) % urls.length;
-        const url = urls[idx];
-        statusEl.textContent = "Assigning you to a URL…";
-        statusEl.classList.remove("error");
-        redirectTo(url);
+        id = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+      }
+      localStorage.setItem(key, id);
+    }
+    return id;
+  }
+
+  function parseCsv(text) {
+    const lines = text.split(/\r?\n/).filter((l) => l.trim() !== "");
+    if (lines.length === 0) return [];
+
+    const header = lines[0].split(",");
+    const idxCode = header.findIndex((h) => h.trim().toLowerCase() === "code");
+    const idxUrl = header.findIndex((h) => h.trim().toLowerCase() === "url");
+
+    if (idxUrl === -1) {
+      throw new Error('CSV must contain a "url" column');
+    }
+
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(",");
+      const code = idxCode >= 0 ? (cols[idxCode] || "").trim() : "";
+      const url = (cols[idxUrl] || "").trim();
+      if (!url) continue;
+      rows.push({ code, url });
+    }
+    return rows;
+  }
+
+  async function loadCsvFromParam() {
+    const params = new URLSearchParams(window.location.search);
+    const csvUrl = params.get("csv");
+
+    // NEW: parse ?t=… as seconds
+    const tParam = params.get("t");
+    if (tParam !== null) {
+      const s = parseFloat(tParam);
+      if (!Number.isNaN(s) && s >= 0) {
+        autoSeconds = s;
       }
     }
 
-    goBtn.addEventListener("click", handleGoClick);
-
-    if (codeInput) {
-      codeInput.addEventListener("keydown", (ev) => {
-        if (ev.key === "Enter") {
-          handleGoClick();
-        }
-      });
+    if (!csvUrl) {
+      statusEl.innerHTML =
+        'Missing <code>?csv=…</code> parameter in the URL. ' +
+        "Call this page like:<br><code>?csv=https%3A%2F%2F…%2Foutput%3Dcsv</code>";
+      statusEl.classList.add("error");
+      goBtn.disabled = true;
+      return;
     }
 
-    loadCsvFromParam();
-  </script>
+    statusEl.textContent = "Loading CSV from parameter…";
+
+    try {
+      const res = await fetch(csvUrl, { cache: "no-cache" });
+      if (!res.ok) {
+        throw new Error("HTTP " + res.status);
+      }
+      const text = await res.text();
+      const data = parseCsv(text);
+
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error("Empty or invalid CSV");
+      }
+
+      links = data;
+      codeMap = {};
+      urls = [];
+
+      for (const entry of links) {
+        const code = (entry.code || "").trim().toLowerCase();
+        const url = (entry.url || "").trim();
+        if (!url) continue;
+        urls.push(url);
+        if (code) {
+          codeMap[code] = url;
+        }
+      }
+
+      if (urls.length === 0) {
+        throw new Error("No valid URLs found in CSV");
+      }
+
+      // NEW: handle auto-timer text
+      if (autoSeconds === null) {
+        statusEl.textContent = "Ready. Tap “Let’s go”.";
+      } else if (autoSeconds === 0) {
+        statusEl.textContent = "Ready. Redirecting now…";
+      } else {
+        statusEl.textContent =
+          "Ready. Redirecting automatically in " +
+          autoSeconds +
+          " second" +
+          (autoSeconds === 1 ? "" : "s") +
+          "… Tap “Let’s go” to go immediately.";
+      }
+      statusEl.classList.remove("error");
+      goBtn.disabled = false;
+
+      // NEW: schedule auto-click (if requested)
+      if (autoSeconds !== null) {
+        if (autoSeconds === 0) {
+          // immediate
+          handleGoClick();
+        } else {
+          autoTimeoutId = setTimeout(() => {
+            if (!hasRedirected) {
+              handleGoClick();
+            }
+          }, autoSeconds * 1000);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      statusEl.innerHTML =
+        "Could not load or parse CSV from:<br><code>" +
+        csvUrl +
+        "</code><br>" +
+        "Error: " +
+        err.message;
+      statusEl.classList.add("error");
+      goBtn.disabled = true;
+    }
+  }
+
+  function redirectTo(url) {
+    if (hasRedirected) return;
+    hasRedirected = true;
+    statusEl.textContent = "Redirecting…";
+    window.location.href = url;
+  }
+
+  function handleGoClick() {
+    if (hasRedirected) return;
+
+    if (autoTimeoutId !== null) {
+      clearTimeout(autoTimeoutId);
+      autoTimeoutId = null;
+    }
+
+    if (urls.length === 0) {
+      statusEl.textContent = "No URLs available.";
+      statusEl.classList.add("error");
+      return;
+    }
+
+    const mode = modeCode && modeCode.checked ? "code" : "random";
+
+    if (mode === "code") {
+      const code = codeInput.value.trim().toLowerCase();
+      if (!code) {
+        statusEl.textContent = "Please enter a code.";
+        statusEl.classList.add("error");
+        return;
+      }
+      const url = codeMap[code];
+      if (!url) {
+        statusEl.textContent = `No URL found for code “${code}”.`;
+        statusEl.classList.add("error");
+        return;
+      }
+      statusEl.textContent = `Using code “${code}”…`;
+      statusEl.classList.remove("error");
+      redirectTo(url);
+    } else {
+      const userId = getUserId();
+      const idx = hashString(userId) % urls.length;
+      const url = urls[idx];
+      statusEl.textContent = "Assigning you to a URL…";
+      statusEl.classList.remove("error");
+      redirectTo(url);
+    }
+  }
+
+  goBtn.addEventListener("click", handleGoClick);
+
+  if (codeInput) {
+    codeInput.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") {
+        handleGoClick();
+      }
+    });
+  }
+
+  loadCsvFromParam();
+</script>
+
 </body>
 </html>
