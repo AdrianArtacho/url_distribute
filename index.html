@@ -237,10 +237,13 @@
   const modeRandom = document.getElementById("mode-random");
   const modeCode = document.getElementById("mode-code");
 
-  // NEW: auto-redirect settings
+  // Auto-redirect settings
   let autoSeconds = null;     // number of seconds (from ?t=…)
   let autoTimeoutId = null;   // ID of the scheduled timeout
   let hasRedirected = false;  // prevent double-redirects
+
+  // NEW: default code from query parameter (?default=purple)
+  let defaultCodeParam = null;
 
   function hashString(str) {
     let hash = 0;
@@ -291,7 +294,7 @@
     const params = new URLSearchParams(window.location.search);
     const csvUrl = params.get("csv");
 
-    // NEW: parse ?t=… as seconds
+    // Parse ?t=… as seconds (auto-redirect timer)
     const tParam = params.get("t");
     if (tParam !== null) {
       const s = parseFloat(tParam);
@@ -300,10 +303,19 @@
       }
     }
 
+    // NEW: parse ?default=… as default code or "random"
+    const defaultParamRaw = params.get("default");
+    if (defaultParamRaw !== null) {
+      const v = defaultParamRaw.trim().toLowerCase();
+      if (v) {
+        defaultCodeParam = v;  // can be "random" or a code like "purple"
+      }
+    }
+
     if (!csvUrl) {
       statusEl.innerHTML =
         'Missing <code>?csv=…</code> parameter in the URL. ' +
-        "Call this page like:<br><code>?csv=https%3A%2F%2F…%2Foutput%3Dcsv</code>";
+        'Call this page like:<br><code>?csv=https%3A%2F%2F…%2Foutput%3Dcsv</code>';
       statusEl.classList.add("error");
       goBtn.disabled = true;
       return;
@@ -341,23 +353,54 @@
         throw new Error("No valid URLs found in CSV");
       }
 
-      // NEW: handle auto-timer text
+      // Decide if we have a *valid* default code
+      let defaultIsCode = false;
+      if (
+        defaultCodeParam &&
+        defaultCodeParam !== "random" &&
+        codeMap[defaultCodeParam]
+      ) {
+        defaultIsCode = true;
+        // Set UI to "Use a code" and prefill that code
+        if (modeCode && modeRandom && codeInput) {
+          modeCode.checked = true;
+          modeRandom.checked = false;
+          codeInput.value = defaultCodeParam;
+        }
+      }
+
+      // Status text depending on timer + default
       if (autoSeconds === null) {
-        statusEl.textContent = "Ready. Tap “Let’s go”.";
+        if (defaultIsCode) {
+          statusEl.textContent =
+            'Ready. Tap “Let’s go” (default code “' + defaultCodeParam + '”).';
+        } else {
+          statusEl.textContent = 'Ready. Tap “Let’s go”.';
+        }
       } else if (autoSeconds === 0) {
-        statusEl.textContent = "Ready. Redirecting now…";
+        if (defaultIsCode) {
+          statusEl.textContent =
+            'Ready. Redirecting now (code “' + defaultCodeParam + '”).';
+        } else {
+          statusEl.textContent = "Ready. Redirecting now…";
+        }
       } else {
-        statusEl.textContent =
+        let msg =
           "Ready. Redirecting automatically in " +
           autoSeconds +
           " second" +
           (autoSeconds === 1 ? "" : "s") +
           "… Tap “Let’s go” to go immediately.";
+        if (defaultIsCode) {
+          msg += ' Default code: “' + defaultCodeParam + '”.';
+        }
+        statusEl.textContent = msg;
       }
+
       statusEl.classList.remove("error");
       goBtn.disabled = false;
 
-      // NEW: schedule auto-click (if requested)
+      // Auto-click (if requested via ?t=…)
       if (autoSeconds !== null) {
         if (autoSeconds === 0) {
           // immediate
@@ -444,6 +487,7 @@
 
   loadCsvFromParam();
 </script>
+
 
 </body>
 </html>

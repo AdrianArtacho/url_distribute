@@ -68,6 +68,16 @@ https://USERNAME.github.io/REPO/?csv=ENCODED_CSV_URL&t=0
 
 ---
 
+## Default forwarding
+
+The query parameter allows to set up the default behaviour of a specific url:
+
+* `?default=random` or no default at all → behaves like now (balanced random)
+
+* `?default=purple` (where purple is a valid code in the CSV) → the default behavior is to redirect to purple’s URL
+
+---
+
 ## Notes / caveats
 
 This simple CSV parser assumes:
